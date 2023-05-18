@@ -56,13 +56,19 @@ BOOL existsUnderAudio(AviUtl::FilterPlugin* fp, AviUtl::FilterProcInfo* fpip, Ex
 
 	int layer_set = _object->layer_set + fp->track[Track::ExcludeLayer];
 	MY_TRACE_INT(layer_set);
+#if 0
+	AviUtl::SysInfo si = {};
+	fp->exfunc->get_sys_info(fpip->editp, &si);
+#endif
+	AviUtl::FileInfo fi = {};
+	fp->exfunc->get_file_info(fpip->editp, &fi);
 
-	// 例えばプロジェクトが 60fps の場合は
-	// fpip->editp->video_rate == 0, fpip->editp->video_scale == 60
-	// のようになるので、0 かどうかチェックしなければならない。
-	int video_rate = (fpip->editp->video_rate == 0) ? 1 : fpip->editp->video_rate;
-	int video_scale = (fpip->editp->video_scale == 0) ? 60 : fpip->editp->video_scale;
-	double ms2frame =  1.0 / 1000.0 * video_scale / video_rate; // ミリ秒をフレーム単位に変換する倍率。
+	// 60fps の場合は fi.video_rate == 60, fi.video_scale == 1
+	// 30fps の場合は fi.video_rate == 30, fi.video_scale == 1
+	// 29.97fps の場合は fi.video_rate == 2997, fi.video_scale == 100
+	int video_rate = std::max(1, fi.video_rate);
+	int video_scale = std::max(1, fi.video_scale); // 念のため 1 以上にしておく。
+	double ms2frame =  1.0 / 1000.0 * video_rate / video_scale; // ミリ秒をフレーム単位に変換する倍率。
 
 	// 各設定値をフレーム単位に変換する。
 	int fadein = (int)(fp->track[Track::Fadein] * ms2frame);
@@ -342,7 +348,7 @@ int check_def[] =
 EXTERN_C AviUtl::FilterPluginDLL* WINAPI GetFilterTable()
 {
 	LPCSTR name = "オートボリューム";
-	LPCSTR information = "オートボリューム 1.0.0 by 蛇色";
+	LPCSTR information = "オートボリューム 1.0.1 by 蛇色";
 
 	static AviUtl::FilterPluginDLL filter =
 	{
